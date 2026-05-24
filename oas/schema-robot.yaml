@@ -1,0 +1,139 @@
+openapi: "3.1.0"
+info:
+  title: Роботы-насекомые
+  version: "0.1"
+  termsOfService: https://gitlab.bmstu.ru/strpo/samples/robots/-/blob/main/terms.md
+components:
+  schemas:
+    robot-status-id:
+      description: Робот-насекомое без id
+      type: object
+      required:
+        - battery_percent
+        - is_moving
+      properties:
+        species:
+          description: Вид насекомого (жук, муравей, стрекоза, таракан)
+          type: string
+          example: "жук"
+        battery_percent:
+          description: Уровень заряда батареи в процентах
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+        is_moving:
+          description: Движется ли робот в данный момент
+          type: boolean
+          example: true
+        speed_m_per_s:
+          description: Текущая скорость движения в метрах в секунду
+          type: number
+          example: 0.12
+        position_x:
+          description: Координата X на поле
+          type: number
+          example: 15.5
+        position_y:
+          description: Координата Y на поле
+          type: number
+          example: 23.8
+        is_pest_detected:
+          description: Обнаружен ли вредитель в текущем кадре
+          type: boolean
+          example: false
+    robot-status:
+      description: Робот-насекомое с id
+      allOf:
+        - $ref: "#/components/schemas/robot-status-id"
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              description: Уникальный идентификатор робота
+              type: string
+              example: "insect-001"
+
+    move-command:
+      description: Команда управления движением
+      type: object
+      required:
+        - command
+      properties:
+        command:
+          description: |
+            Команда движения:
+            forward - движение вперёд
+            backward - движение назад
+            turn_left - поворот налево
+            turn_right - поворот направо
+            stop - остановка
+          type: string
+          enum: [forward, backward, turn_left, turn_right, stop]
+          example: forward
+        duration_sec:
+          description: Длительность движения в секундах (для forward/backward)
+          type: integer
+          example: 5
+        angle_deg:
+          description: Угол поворота в градусах (для turn_left/turn_right)
+          type: integer
+          example: 45
+
+    route-point:
+      description: Точка маршрута
+      type: object
+      required:
+        - timestamp
+        - x
+        - y
+      properties:
+        timestamp:
+          description: Время записи точки
+          type: string
+          format: date-time
+          example: "2026-05-24T10:30:00Z"
+        x:
+          description: Координата X
+          type: number
+          example: 15.5
+        y:
+          description: Координата Y
+          type: number
+          example: 23.8
+
+    route:
+      description: Маршрут движения робота
+      type: array
+      items:
+        $ref: "#/components/schemas/route-point"
+
+    pest-detection:
+      description: Результат обнаружения вредителя
+      type: object
+      properties:
+        pest_detected:
+          description: Обнаружен ли вредитель
+          type: boolean
+          example: true
+        pest_type:
+          description: Тип обнаруженного вредителя
+          type: string
+          example: "колорадский жук"
+        confidence:
+          description: Уверенность в обнаружении (от 0 до 1)
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.95
+        photo_url:
+          description: Ссылка на фото с камеры
+          type: string
+          example: "http://robot-insect.local/photos/2026-05-24/photo-001.jpg"
+
+    multiple-robots:
+      description: Список роботов-насекомых
+      type: array
+      items:
+        $ref: "#/components/schemas/robot-status"
