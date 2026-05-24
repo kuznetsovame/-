@@ -1,0 +1,1008 @@
+openapi: 3.0.0
+info:
+  title: Robots-Insects API
+  description: |
+    Система разработки и производства роботов-насекомых.
+    Управляет процессом от проектирования (чертежи, 3D-модели, ТТХ)
+    через биомеханику (отчёты биологов → дифференциальные уравнения)
+    к генерации прошивки, производству компонентов и финальной сборке.
+  version: 1.0.0
+  contact:
+    name: Student
+    email: student@bmstu.ru
+
+servers:
+  - url: https://gitlab.bmstu.ru/api/v1/robots
+    description: Вузовский сервер (production)
+  - url: http://localhost:8080/api/v1/robots
+    description: Локальный сервер для разработки
+
+tags:
+  - name: prototypes
+    description: Управление прототипами роботов-насекомых
+  - name: design
+    description: Чертежи (CAD) и 3D-модели внешнего вида
+  - name: biology
+    description: Биологические отчёты о поведении насекомых
+  - name: bionics
+    description: Преобразование отчётов в дифференциальные уравнения
+  - name: software
+    description: Генерация кода управления и симуляция
+  - name: manufacturing
+    description: Производство компонентов на станках
+  - name: assembly
+    description: Сборка робота и загрузка прошивки
+
+paths:
+  # ==================== PROTOTYPES ====================
+  /prototypes:
+    post:
+      tags: [prototypes]
+      summary: Создать новый прототип
+      operationId: createPrototype
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrototypeCreateRequest'
+      responses:
+        '201':
+          description: Прототип создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrototypeResponse'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [prototypes]
+      summary: Получить список всех прототипов
+      operationId: listPrototypes
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, design, bionics, software, manufacturing, completed]
+          description: Фильтр по статусу
+        - name: species
+          in: query
+          schema:
+            type: string
+          description: Фильтр по типу насекомого
+      responses:
+        '200':
+          description: Список прототипов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PrototypeResponse'
+
+  /prototypes/{prototypeId}:
+    get:
+      tags: [prototypes]
+      summary: Получить прототип по ID
+      operationId: getPrototype
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Данные прототипа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrototypeResponse'
+        '404':
+          description: Прототип не найден
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [prototypes]
+      summary: Обновить прототип
+      operationId: updatePrototype
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                version:
+                  type: string
+                status:
+                  type: string
+                  enum: [draft, design, bionics, software, manufacturing, completed]
+      responses:
+        '200':
+          description: Прототип обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrototypeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== DESIGN (CAD + 3D) ====================
+  /prototypes/{prototypeId}/scheme:
+    post:
+      tags: [design]
+      summary: Загрузить чертёж схемы для прототипа
+      operationId: uploadScheme
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                cad_file:
+                  type: string
+                  format: binary
+                  description: Файл чертежа (CAD)
+                scheme_type:
+                  type: string
+                  enum: [mechanical, electrical, pcb]
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Чертёж сохранён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CADSchemeResponse'
+        '400':
+          description: Ошибка формата файла
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /prototypes/{prototypeId}/design:
+    post:
+      tags: [design]
+      summary: Загрузить 3D-модель внешнего вида
+      operationId: uploadDesign3D
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                model_3d:
+                  type: string
+                  format: binary
+                  description: 3D-модель (STL/OBJ)
+                color_scheme:
+                  type: string
+                scale:
+                  type: number
+      responses:
+        '200':
+          description: 3D-модель привязана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Design3DResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /prototypes/{prototypeId}/specs:
+    post:
+      tags: [design]
+      summary: Задать ТТХ прототипа
+      operationId: setSpecifications
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpecificationsRequest'
+      responses:
+        '200':
+          description: ТТХ сохранены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificationsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== BIOLOGY ====================
+  /biology/reports:
+    post:
+      tags: [biology]
+      summary: Загрузить биологический отчёт
+      operationId: uploadBiologyReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BiologyReportRequest'
+      responses:
+        '201':
+          description: Отчёт сохранён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiologyReportResponse'
+        '422':
+          description: Неполные/некорректные данные
+          $ref: '#/components/responses/Unprocessable'
+
+    get:
+      tags: [biology]
+      summary: Получить список биологических отчётов
+      operationId: listBiologyReports
+      parameters:
+        - name: species
+          in: query
+          schema:
+            type: string
+          description: Фильтр по виду насекомого
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Список отчётов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BiologyReportResponse'
+
+  /biology/reports/{reportId}:
+    get:
+      tags: [biology]
+      summary: Получить отчёт по ID
+      operationId: getBiologyReport
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Отчёт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiologyReportResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== BIONICS ====================
+  /bionics/transform:
+    post:
+      tags: [bionics]
+      summary: Преобразовать биологический отчёт в дифференциальные уравнения
+      operationId: transformToEquations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_id
+                - prototype_id
+              properties:
+                report_id:
+                  type: string
+                  description: ID биологического отчёта
+                prototype_id:
+                  type: string
+                  description: ID прототипа
+      responses:
+        '200':
+          description: Уравнения созданы
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BionicEquationsResponse'
+        '404':
+          description: Отчёт или прототип не найдены
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Отчёт нельзя преобразовать
+          $ref: '#/components/responses/Unprocessable'
+
+  /prototypes/{prototypeId}/equations:
+    patch:
+      tags: [bionics]
+      summary: Привязать уравнения к прототипу
+      operationId: attachEquations
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                equations:
+                  type: array
+                  items:
+                    type: string
+                  description: Дифференциальные уравнения в LaTeX
+      responses:
+        '200':
+          description: Уравнения привязаны
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrototypeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== SOFTWARE ====================
+  /software/generate:
+    post:
+      tags: [software]
+      summary: Сгенерировать код управления (прошивку)
+      operationId: generateFirmware
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prototype_id
+              properties:
+                prototype_id:
+                  type: string
+                language:
+                  type: string
+                  enum: [c++, python, microPython]
+                  default: c++
+                target_platform:
+                  type: string
+                  enum: [arduino, esp32, stm32]
+                  default: arduino
+      responses:
+        '200':
+          description: Прошивка сгенерирована
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateCodeResponse'
+        '404':
+          description: Прототип не найден
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Нет уравнений для генерации
+          $ref: '#/components/responses/Unprocessable'
+
+  /firmware/{firmwareId}:
+    get:
+      tags: [software]
+      summary: Скачать сгенерированную прошивку
+      operationId: downloadFirmware
+      parameters:
+        - name: firmwareId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Бинарный файл прошивки
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Прошивка не найдена
+          $ref: '#/components/responses/NotFound'
+
+  /simulation/run:
+    post:
+      tags: [software]
+      summary: Запустить симуляцию поведения робота
+      operationId: runSimulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prototype_id
+              properties:
+                prototype_id:
+                  type: string
+                duration_sec:
+                  type: integer
+                  minimum: 1
+                  maximum: 3600
+                  default: 60
+                environment:
+                  type: string
+                  enum: [flat, obstacles, rough_terrain]
+                  default: flat
+      responses:
+        '200':
+          description: Симуляция выполнена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Невозможно запустить симуляцию
+          $ref: '#/components/responses/Unprocessable'
+
+  # ==================== MANUFACTURING ====================
+  /manufacturing/orders:
+    post:
+      tags: [manufacturing]
+      summary: Создать производственный заказ
+      operationId: createManufacturingOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManufacturingOrderRequest'
+      responses:
+        '201':
+          description: Заказ создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManufacturingOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags: [manufacturing]
+      summary: Получить список заказов
+      operationId: listManufacturingOrders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, manufacturing, completed, cancelled]
+      responses:
+        '200':
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ManufacturingOrderResponse'
+
+  /manufacturing/orders/{orderId}:
+    get:
+      tags: [manufacturing]
+      summary: Получить заказ по ID
+      operationId: getManufacturingOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Данные заказа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManufacturingOrderResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /components/{serialNumber}/status:
+    patch:
+      tags: [manufacturing]
+      summary: Обновить статус компонента
+      operationId: updateComponentStatus
+      parameters:
+        - name: serialNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, manufacturing, ready, defective, shipped]
+      responses:
+        '200':
+          description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /components:
+    get:
+      tags: [manufacturing]
+      summary: Получить список компонентов
+      operationId: listComponents
+      parameters:
+        - name: prototypeId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, manufacturing, ready, defective, shipped]
+      responses:
+        '200':
+          description: Список компонентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComponentResponse'
+
+  # ==================== ASSEMBLY ====================
+  /assembly/ready-components:
+    get:
+      tags: [assembly]
+      summary: Получить список готовых компонентов для сборки
+      operationId: getReadyComponents
+      parameters:
+        - name: prototypeId
+          in: query
+          schema:
+            type: string
+          description: Фильтр по прототипу
+      responses:
+        '200':
+          description: Список готовых компонентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComponentResponse'
+
+  /assembly/prototypes/{prototypeId}/complete:
+    post:
+      tags: [assembly]
+      summary: Завершить сборку робота и загрузить прошивку
+      operationId: completeAssembly
+      parameters:
+        - name: prototypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - firmware_binary
+              properties:
+                firmware_binary:
+                  type: string
+                  format: binary
+                  description: Бинарный файл прошивки
+                robot_name:
+                  type: string
+                  description: Индивидуальное имя робота
+      responses:
+        '200':
+          description: Сборка завершена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssemblyCompleteResponse'
+        '400':
+          description: Не хватает компонентов
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    # ========== ERROR ==========
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        details:
+          type: string
+
+    # ========== PROTOTYPES ==========
+    PrototypeCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        version:
+          type: string
+          pattern: '^\d+\.\d+$'
+          default: "0.1"
+        species:
+          type: string
+          description: Тип насекомого (жук, муравей, стрекоза и т.д.)
+        description:
+          type: string
+
+    PrototypeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        species:
+          type: string
+        status:
+          type: string
+          enum: [draft, design, bionics, software, manufacturing, completed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ========== DESIGN ==========
+    CADSchemeResponse:
+      type: object
+      properties:
+        scheme_id:
+          type: string
+        prototype_id:
+          type: string
+        scheme_type:
+          type: string
+        url:
+          type: string
+          format: uri
+        uploaded_at:
+          type: string
+          format: date-time
+
+    Design3DResponse:
+      type: object
+      properties:
+        model_id:
+          type: string
+        prototype_id:
+          type: string
+        url:
+          type: string
+          format: uri
+        color_scheme:
+          type: string
+        scale:
+          type: number
+
+    SpecificationsRequest:
+      type: object
+      properties:
+        weight_kg:
+          type: number
+          minimum: 0
+        length_mm:
+          type: number
+          minimum: 0
+        width_mm:
+          type: number
+          minimum: 0
+        height_mm:
+          type: number
+          minimum: 0
+        material:
+          type: string
+        battery_capacity_mah:
+          type: integer
+          minimum: 0
+
+    SpecificationsResponse:
+      type: object
+      properties:
+        prototype_id:
+          type: string
+        weight_kg:
+          type: number
+        length_mm:
+          type: number
+        width_mm:
+          type: number
+        height_mm:
+          type: number
+        material:
+          type: string
+        battery_capacity_mah:
+          type: integer
+
+    # ========== BIOLOGY ==========
+    BiologyReportRequest:
+      type: object
+      required:
+        - species
+        - observations
+      properties:
+        species:
+          type: string
+        observations:
+          type: array
+          items:
+            type: string
+        reflexes:
+          type: array
+          items:
+            type: string
+        locomotion_data:
+          type: object
+          properties:
+            step_frequency:
+              type: number
+            step_length_mm:
+              type: number
+            speed_max_m_per_s:
+              type: number
+
+    BiologyReportResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        species:
+          type: string
+        observations:
+          type: array
+          items:
+            type: string
+        reflexes:
+          type: array
+          items:
+            type: string
+        locomotion_data:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    # ========== BIONICS ==========
+    BionicEquationsResponse:
+      type: object
+      properties:
+        prototype_id:
+          type: string
+        report_id:
+          type: string
+        equations:
+          type: array
+          items:
+            type: string
+            description: Дифференциальные уравнения в LaTeX
+        generated_at:
+          type: string
+          format: date-time
+
+    # ========== SOFTWARE ==========
+    GenerateCodeResponse:
+      type: object
+      properties:
+        firmware_id:
+          type: string
+        prototype_id:
+          type: string
+        language:
+          type: string
+        target_platform:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        firmware_size_bytes:
+          type: integer
+        generated_at:
+          type: string
+          format: date-time
+
+    SimulationResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        prototype_id:
+          type: string
+        duration_sec:
+          type: integer
+        trajectory:
+          type: array
+          items:
+            type: object
+            properties:
+              time_sec:
+                type: number
+              x:
+                type: number
+              y:
+                type: number
+              theta:
+                type: number
+        energy_consumption_j:
+          type: number
+        avg_speed_m_per_s:
+          type: number
+        obstacles_collisions:
+          type: integer
+
+    # ========== MANUFACTURING ==========
+    ManufacturingOrderRequest:
+      type: object
+      required:
+        - prototype_id
+        - quantity
+      properties:
+        prototype_id:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+
+    ManufacturingOrderResponse:
+      type: object
+      properties:
+        order_id:
+          type: string
+        prototype_id:
+          type: string
+        quantity:
+          type: integer
+        status:
+          type: string
+          enum: [pending, manufacturing, completed, cancelled]
+        created_at:
+          type: string
+          format: date-time
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentResponse'
+
+    ComponentResponse:
+      type: object
+      properties:
+        serial_number:
+          type: string
+        prototype_id:
+          type: string
+        order_id:
+          type: string
+        component_type:
+          type: string
+          enum: [chassis, processor, servo, battery, sensor]
+        status:
+          type: string
+          enum: [pending, manufacturing, ready, defective, shipped]
+        manufactured_at:
+          type: string
+          format: date-time
+
+    # ========== ASSEMBLY ==========
+    AssemblyCompleteResponse:
+      type: object
+      properties:
+        robot_id:
+          type: string
+        prototype_id:
+          type: string
+        robot_name:
+          type: string
+        status:
+          type: string
+          enum: [completed, pending, failed]
+        assembled_at:
+          type: string
+          format: date-time
+        firmware_version:
+          type: string
+
+  responses:
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 404
+            message: "Resource not found"
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unprocessable:
+      description: Необрабатываемый запрос (ошибка бизнес-логики)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
