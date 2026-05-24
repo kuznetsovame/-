@@ -3,12 +3,6 @@ info:
   title: Роботы-насекомые
   version: "0.1"
   termsOfService: https://gitlab.bmstu.ru/strpo/samples/robots/-/blob/main/terms.md
-  contact:
-    name: Фетисов Михаил Вячеславович
-    email: fetisov.michael@yandex.ru
-externalDocs:
-  description: Больше информации тут
-  url: https://gitlab.bmstu.ru/strpo/samples/robots/-/tree/main/doc
 servers:
   - url: http://robot-insect.local/api/v1
     description: Локальный API робота-насекомого
