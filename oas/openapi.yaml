@@ -1,40 +1,519 @@
 openapi: "3.1.0"
 info:
-  title: Роботы-насекомые
+  title: Система разработки и производства роботов-насекомых
   version: "0.1"
-  termsOfService: https://gitlab.bmstu.ru/strpo/samples/robots/-/blob/main/terms.md
 servers:
-  - url: http://robot-insect.local/api/v1
-    description: Локальный API робота-насекомого
+  - url: http://localhost:2021
+    description: Локальный сервер разработчика
+
 paths:
-  /status:
-    description: Текущее состояние робота
+  # ========== ENGINEERING CONTEXT (Прототипы, чертежи, ТТХ) ==========
+  /prototypes:
+    post:
+      summary: Создать прототип
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/prototype"
+      responses:
+        "201":
+          description: Прототип создан
     get:
-      summary: Получить статус робота
-      description: |
-        Возвращает текущее состояние робота-насекомого:
-        вид, уровень заряда, координаты, скорость, обнаружение вредителя
+      summary: Получить список прототипов
+      parameters:
+        - name: species
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
-          description: Текущий статус робота
+          description: Список прототипов
           content:
             application/json:
               schema:
-                $ref: "schema-robot.yaml#/components/schemas/robot-status"
-        "500":
-          description: Ошибка сервиса
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/prototype"
+
+  /prototypes/{prototypeId}:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить прототип по ID
+      responses:
+        "200":
+          description: Данные прототипа
           content:
             application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/prototype"
+        "404":
+          description: Прототип не найден
+
+  /prototypes/{prototypeId}/scheme:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Загрузить чертёж
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/scheme"
+      responses:
+        "200":
+          description: Чертёж сохранён
+    get:
+      summary: Получить чертёж
+      responses:
+        "200":
+          description: Данные чертежа
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/scheme"
+
+  /prototypes/{prototypeId}/specs:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Задать технические характеристики
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/specifications"
+      responses:
+        "200":
+          description: ТТХ сохранены
+    get:
+      summary: Получить технические характеристики
+      responses:
+        "200":
+          description: ТТХ прототипа
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/specifications"
+
+  # ========== DESIGN CONTEXT (3D-модели) ==========
+  /prototypes/{prototypeId}/design:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Загрузить 3D-модель
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/design-3d"
+      responses:
+        "200":
+          description: 3D-модель сохранена
+    get:
+      summary: Получить 3D-модель
+      responses:
+        "200":
+          description: Данные 3D-модели
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/design-3d"
+
+  # ========== BIOLOGY CONTEXT (Биологические отчёты) ==========
+  /reports:
+    post:
+      summary: Загрузить биологический отчёт
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/biology-report"
+      responses:
+        "201":
+          description: Отчёт сохранён
+    get:
+      summary: Получить список отчётов
+      parameters:
+        - name: species
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Список отчётов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/biology-report"
+
+  /reports/{reportId}:
+    parameters:
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить отчёт по ID
+      responses:
+        "200":
+          description: Данные отчёта
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/biology-report"
+        "404":
+          description: Отчёт не найден
+
+  # ========== BIONICS CONTEXT (Дифференциальные уравнения) ==========
+  /transform:
+    post:
+      summary: Преобразовать отчёт в уравнения
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_id
+                - prototype_id
+              properties:
+                report_id:
+                  type: string
+                prototype_id:
+                  type: string
+      responses:
+        "200":
+          description: Уравнения созданы
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/equations"
+
+  /prototypes/{prototypeId}/equations:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить уравнения прототипа
+      responses:
+        "200":
+          description: Уравнения прототипа
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/equations"
+
+  # ========== SOFTWARE CONTEXT (Прошивка, симуляция) ==========
+  /generate:
+    post:
+      summary: Сгенерировать прошивку
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/generate-request"
+      responses:
+        "200":
+          description: Прошивка сгенерирована
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/firmware"
+
+  /firmware/{firmwareId}:
+    parameters:
+      - name: firmwareId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Скачать прошивку
+      responses:
+        "200":
+          description: Бинарный файл прошивки
+          content:
+            application/octet-stream:
               schema:
                 type: string
-                description: Описание ошибки
-                example: "Timeout"
-
-  /robots:
-    description: Управление несколькими роботами
+                format: binary
     get:
-      summary: Получить список всех роботов
-      description: |
+      summary: Получить информацию о прошивке
+      responses:
+        "200":
+          description: Данные прошивки
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/firmware"
+
+  /simulation:
+    post:
+      summary: Запустить симуляцию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/simulation-request"
+      responses:
+        "200":
+          description: Результат симуляции
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/simulation-result"
+
+  /simulation/{simulationId}:
+    parameters:
+      - name: simulationId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить результат симуляции
+      responses:
+        "200":
+          description: Результат симуляции
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/simulation-result"
+
+  # ========== MANUFACTURING CONTEXT (Заказы, компоненты) ==========
+  /manufacturing/orders:
+    post:
+      summary: Создать производственный заказ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "schema-robot.yaml#/components/schemas/manufacturing-order"
+      responses:
+        "201":
+          description: Заказ создан
+    get:
+      summary: Получить список заказов
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/manufacturing-order"
+
+  /manufacturing/orders/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить заказ по ID
+      responses:
+        "200":
+          description: Данные заказа
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/manufacturing-order"
+
+  /components:
+    get:
+      summary: Получить список компонентов
+      parameters:
+        - name: prototype_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: integer
+        - name: order_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Список компонентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/component"
+
+  /components/{serialNumber}:
+    parameters:
+      - name: serialNumber
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить компонент по серийному номеру
+      responses:
+        "200":
+          description: Данные компонента
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/component"
+
+  /components/{serialNumber}/status:
+    parameters:
+      - name: serialNumber
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Обновить статус компонента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: integer
+                  enum: [0, 1, 2, 3]
+      responses:
+        "200":
+          description: Статус обновлён
+
+  # ========== ASSEMBLY CONTEXT (Сборка) ==========
+  /assembly/ready-components:
+    get:
+      summary: Получить список готовых компонентов
+      parameters:
+        - name: prototype_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Список готовых компонентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/component"
+
+  /assembly/prototypes/{prototypeId}/complete:
+    parameters:
+      - name: prototypeId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Завершить сборку
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firmware_id
+              properties:
+                firmware_id:
+                  type: string
+                robot_name:
+                  type: string
+      responses:
+        "200":
+          description: Сборка завершена
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/assembled-robot"
+
+  /assembly/robots:
+    get:
+      summary: Получить список готовых роботов
+      parameters:
+        - name: prototype_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Список готовых роботов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "schema-robot.yaml#/components/schemas/assembled-robot"
+
+  /assembly/robots/{robotId}:
+    parameters:
+      - name: robotId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Получить информацию о готовом роботе
+      responses:
+        "200":
+          description: Данные робота
+          content:
+            application/json:
+              schema:
+                $ref: "schema-robot.yaml#/components/schemas/assembled-robot"      description: |
         Возвращает статусы всех доступных роботов-насекомых
       responses:
         "200":
