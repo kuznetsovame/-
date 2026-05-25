@@ -2,10 +2,9 @@ openapi: "3.1.0"
 info:
   title: Система разработки и производства роботов-насекомых
   version: "0.1"
-  termsOfService: https://gitlab.bmstu.ru/strpo/samples/robots/-/blob/main/terms.md
 components:
   schemas:
-    # ========== ENGINEERING CONTEXT ==========
+    # контекст Инженеры
     prototype:
       description: Прототип робота-насекомого
       type: object
@@ -121,7 +120,7 @@ components:
           type: string
           example: "IP54"
 
-    # ========== DESIGN CONTEXT ==========
+    # контекст Дизайнеры
     design-3d:
       description: 3D-модель внешнего вида робота
       type: object
@@ -150,7 +149,7 @@ components:
           type: string
           format: date-time
 
-    # ========== BIOLOGY CONTEXT ==========
+    # контекст Биологи
     biology-report:
       description: Биологический отчёт о поведении насекомого
       type: object
@@ -178,22 +177,10 @@ components:
           description: Частота шагов в Гц
           type: number
           example: 4.2
-        turning_radius_mm:
-          description: Радиус поворота в миллиметрах
-          type: integer
-          example: 35
-        obstacle_avoidance_angle_deg:
-          description: Угол обхода препятствия в градусах
-          type: integer
-          example: 45
         max_climb_height_mm:
           description: Максимальная высота преодолеваемого препятствия
           type: integer
           example: 30
-        wet_areas_avoidance:
-          description: Обходит ли лужи
-          type: boolean
-          example: true
         reflexes:
           description: Рефлексы насекомого
           type: array
@@ -210,7 +197,7 @@ components:
           type: string
           format: date-time
 
-    # ========== BIONICS CONTEXT ==========
+    # контекст Бионики
     equations:
       description: Дифференциальные уравнения движения
       type: object
@@ -238,14 +225,11 @@ components:
             type: string
           example:
             - "dx/dt = v \\cdot \\cos(\\theta)"
-            - "dy/dt = v \\cdot \\sin(\\theta)"
-            - "d\\theta/dt = \\omega"
-            - "\\omega = k_1 \\cdot \\exp(-d / d_0) \\cdot \\sin(\\phi)"
         created_at:
           type: string
           format: date-time
 
-    # ========== SOFTWARE CONTEXT ==========
+    # Контекст программисты
     generate-request:
       description: Запрос на генерацию прошивки
       type: object
@@ -363,7 +347,7 @@ components:
           type: string
           format: date-time
 
-    # ========== MANUFACTURING CONTEXT ==========
+    # контекст Производство
     manufacturing-order:
       description: Производственный заказ
       type: object
@@ -439,7 +423,7 @@ components:
           type: string
           format: date-time
 
-    # ========== ASSEMBLY CONTEXT ==========
+    # контекст Сборка
     assembled-robot:
       description: Готовый робот
       type: object
