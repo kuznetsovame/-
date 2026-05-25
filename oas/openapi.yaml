@@ -7,7 +7,7 @@ servers:
     description: Локальный сервер разработчика
 
 paths:
-  # ========== ENGINEERING CONTEXT (Прототипы, чертежи, ТТХ) ==========
+  # контекст Инженеры
   /prototypes:
     post:
       summary: Создать прототип
@@ -116,7 +116,7 @@ paths:
               schema:
                 $ref: "schema-robot.yaml#/components/schemas/specifications"
 
-  # ========== DESIGN CONTEXT (3D-модели) ==========
+  # констекст Дизайнеры
   /prototypes/{prototypeId}/design:
     parameters:
       - name: prototypeId
@@ -145,7 +145,7 @@ paths:
               schema:
                 $ref: "schema-robot.yaml#/components/schemas/design-3d"
 
-  # ========== BIOLOGY CONTEXT (Биологические отчёты) ==========
+  # контекст Биологи
   /reports:
     post:
       summary: Загрузить биологический отчёт
@@ -194,7 +194,7 @@ paths:
         "404":
           description: Отчёт не найден
 
-  # ========== BIONICS CONTEXT (Дифференциальные уравнения) ==========
+  # контекст Бионики
   /transform:
     post:
       summary: Преобразовать отчёт в уравнения
@@ -237,7 +237,7 @@ paths:
               schema:
                 $ref: "schema-robot.yaml#/components/schemas/equations"
 
-  # ========== SOFTWARE CONTEXT (Прошивка, симуляция) ==========
+  # контекст Программисты 
   /generate:
     post:
       summary: Сгенерировать прошивку
@@ -316,7 +316,7 @@ paths:
               schema:
                 $ref: "schema-robot.yaml#/components/schemas/simulation-result"
 
-  # ========== MANUFACTURING CONTEXT (Заказы, компоненты) ==========
+  # контекст Производство
   /manufacturing/orders:
     post:
       summary: Создать производственный заказ
@@ -431,7 +431,7 @@ paths:
         "200":
           description: Статус обновлён
 
-  # ========== ASSEMBLY CONTEXT (Сборка) ==========
+  # контекст Сборка
   /assembly/ready-components:
     get:
       summary: Получить список готовых компонентов
