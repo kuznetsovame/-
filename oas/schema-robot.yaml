@@ -1,139 +1,474 @@
 openapi: "3.1.0"
 info:
-  title: Роботы-насекомые
+  title: Система разработки и производства роботов-насекомых
   version: "0.1"
   termsOfService: https://gitlab.bmstu.ru/strpo/samples/robots/-/blob/main/terms.md
 components:
   schemas:
-    robot-status-id:
-      description: Робот-насекомое без id
+    # ========== ENGINEERING CONTEXT ==========
+    prototype:
+      description: Прототип робота-насекомого
       type: object
       required:
-        - battery_percent
-        - is_moving
+        - id
+        - name
+        - species
       properties:
+        id:
+          description: Уникальный идентификатор прототипа
+          type: string
+          example: "proto-001"
+        name:
+          description: Название прототипа
+          type: string
+          example: "Farmer-Beetle"
         species:
           description: Вид насекомого (жук, муравей, стрекоза, таракан)
           type: string
           example: "жук"
-        battery_percent:
-          description: Уровень заряда батареи в процентах
-          type: integer
-          minimum: 0
-          maximum: 100
-          example: 85
-        is_moving:
-          description: Движется ли робот в данный момент
-          type: boolean
-          example: true
-        speed_m_per_s:
-          description: Текущая скорость движения в метрах в секунду
-          type: number
-          example: 0.12
-        position_x:
-          description: Координата X на поле
-          type: number
-          example: 15.5
-        position_y:
-          description: Координата Y на поле
-          type: number
-          example: 23.8
-        is_pest_detected:
-          description: Обнаружен ли вредитель в текущем кадре
-          type: boolean
-          example: false
-    robot-status:
-      description: Робот-насекомое с id
-      allOf:
-        - $ref: "#/components/schemas/robot-status-id"
-        - type: object
-          required:
-            - id
-          properties:
-            id:
-              description: Уникальный идентификатор робота
-              type: string
-              example: "insect-001"
-
-    move-command:
-      description: Команда управления движением
-      type: object
-      required:
-        - command
-      properties:
-        command:
+        status:
           description: |
-            Команда движения:
-            forward - движение вперёд
-            backward - движение назад
-            turn_left - поворот налево
-            turn_right - поворот направо
-            stop - остановка
-          type: string
-          enum: [forward, backward, turn_left, turn_right, stop]
-          example: forward
-        duration_sec:
-          description: Длительность движения в секундах (для forward/backward)
+            Статус разработки прототипа:
+            0 - черновик
+            1 - проектирование
+            2 - биомеханика
+            3 - программирование
+            4 - производство
+            5 - готов
           type: integer
-          example: 5
-        angle_deg:
-          description: Угол поворота в градусах (для turn_left/turn_right)
-          type: integer
-          example: 45
-
-    route-point:
-      description: Точка маршрута
-      type: object
-      required:
-        - timestamp
-        - x
-        - y
-      properties:
-        timestamp:
-          description: Время записи точки
+          enum: [0, 1, 2, 3, 4, 5]
+          example: 1
+        created_at:
           type: string
           format: date-time
-          example: "2026-05-24T10:30:00Z"
-        x:
-          description: Координата X
-          type: number
-          example: 15.5
-        y:
-          description: Координата Y
-          type: number
-          example: 23.8
+        updated_at:
+          type: string
+          format: date-time
 
-    route:
-      description: Маршрут движения робота
-      type: array
-      items:
-        $ref: "#/components/schemas/route-point"
-
-    pest-detection:
-      description: Результат обнаружения вредителя
+    scheme:
+      description: Чертёж конструкции робота
       type: object
+      required:
+        - id
+        - prototype_id
+        - cad_file
       properties:
-        pest_detected:
-          description: Обнаружен ли вредитель
+        id:
+          description: Уникальный идентификатор чертежа
+          type: string
+          example: "scheme-001"
+        prototype_id:
+          description: ID прототипа, к которому относится чертёж
+          type: string
+          example: "proto-001"
+        cad_file:
+          description: Файл чертежа (CAD)
+          type: string
+          format: binary
+        scheme_type:
+          description: Тип чертежа
+          type: string
+          enum: [mechanical, electrical]
+          example: "mechanical"
+        version:
+          description: Версия чертежа
+          type: integer
+          example: 1
+        uploaded_at:
+          type: string
+          format: date-time
+
+    specifications:
+      description: Технические характеристики (ТТХ) прототипа
+      type: object
+      required:
+        - prototype_id
+      properties:
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        weight_g:
+          description: Вес в граммах
+          type: integer
+          example: 100
+        length_mm:
+          description: Длина в миллиметрах
+          type: integer
+          example: 100
+        width_mm:
+          description: Ширина в миллиметрах
+          type: integer
+          example: 60
+        height_mm:
+          description: Высота в миллиметрах
+          type: integer
+          example: 30
+        max_speed_m_per_s:
+          description: Максимальная скорость в м/с
+          type: number
+          example: 0.12
+        max_obstacle_height_mm:
+          description: Максимальная высота препятствия для преодоления
+          type: integer
+          example: 30
+        battery_capacity_mah:
+          description: Ёмкость батареи в мАч
+          type: integer
+          example: 2000
+        protection_class:
+          description: Класс защиты от пыли и влаги
+          type: string
+          example: "IP54"
+
+    # ========== DESIGN CONTEXT ==========
+    design-3d:
+      description: 3D-модель внешнего вида робота
+      type: object
+      required:
+        - id
+        - prototype_id
+        - model_3d
+      properties:
+        id:
+          description: Уникальный идентификатор 3D-модели
+          type: string
+          example: "design-001"
+        prototype_id:
+          description: ID прототипа, к которому относится модель
+          type: string
+          example: "proto-001"
+        model_3d:
+          description: 3D-модель (STL/OBJ)
+          type: string
+          format: binary
+        color:
+          description: Цвет корпуса
+          type: string
+          example: "зелёный"
+        uploaded_at:
+          type: string
+          format: date-time
+
+    # ========== BIOLOGY CONTEXT ==========
+    biology-report:
+      description: Биологический отчёт о поведении насекомого
+      type: object
+      required:
+        - id
+        - species
+      properties:
+        id:
+          description: Уникальный идентификатор отчёта
+          type: string
+          example: "report-001"
+        species:
+          description: Вид насекомого
+          type: string
+          example: "жук-рогач"
+        max_speed_m_per_s:
+          description: Максимальная скорость насекомого
+          type: number
+          example: 0.12
+        step_length_mm:
+          description: Длина шага в миллиметрах
+          type: number
+          example: 8.5
+        step_frequency_hz:
+          description: Частота шагов в Гц
+          type: number
+          example: 4.2
+        turning_radius_mm:
+          description: Радиус поворота в миллиметрах
+          type: integer
+          example: 35
+        obstacle_avoidance_angle_deg:
+          description: Угол обхода препятствия в градусах
+          type: integer
+          example: 45
+        max_climb_height_mm:
+          description: Максимальная высота преодолеваемого препятствия
+          type: integer
+          example: 30
+        wet_areas_avoidance:
+          description: Обходит ли лужи
           type: boolean
           example: true
-        pest_type:
-          description: Тип обнаруженного вредителя
+        reflexes:
+          description: Рефлексы насекомого
+          type: array
+          items:
+            type: object
+            properties:
+              stimulus:
+                type: string
+                example: "прикосновение"
+              reaction:
+                type: string
+                example: "сворачивание"
+        created_at:
           type: string
-          example: "колорадский жук"
-        confidence:
-          description: Уверенность в обнаружении (от 0 до 1)
-          type: number
-          minimum: 0
-          maximum: 1
-          example: 0.95
-        photo_url:
-          description: Ссылка на фото с камеры
-          type: string
-          example: "http://robot-insect.local/photos/2026-05-24/photo-001.jpg"
+          format: date-time
 
-    multiple-robots:
-      description: Список роботов-насекомых
-      type: array
-      items:
-        $ref: "#/components/schemas/robot-status"
+    # ========== BIONICS CONTEXT ==========
+    equations:
+      description: Дифференциальные уравнения движения
+      type: object
+      required:
+        - id
+        - prototype_id
+        - report_id
+      properties:
+        id:
+          description: Уникальный идентификатор уравнений
+          type: string
+          example: "eq-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        report_id:
+          description: ID биологического отчёта
+          type: string
+          example: "report-001"
+        latex_equations:
+          description: Уравнения в формате LaTeX
+          type: array
+          items:
+            type: string
+          example:
+            - "dx/dt = v \\cdot \\cos(\\theta)"
+            - "dy/dt = v \\cdot \\sin(\\theta)"
+            - "d\\theta/dt = \\omega"
+            - "\\omega = k_1 \\cdot \\exp(-d / d_0) \\cdot \\sin(\\phi)"
+        created_at:
+          type: string
+          format: date-time
+
+    # ========== SOFTWARE CONTEXT ==========
+    generate-request:
+      description: Запрос на генерацию прошивки
+      type: object
+      required:
+        - prototype_id
+      properties:
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        language:
+          description: Язык программирования
+          type: string
+          enum: [c++, python, microPython]
+          example: "c++"
+        target_platform:
+          description: Целевая платформа
+          type: string
+          enum: [arduino, esp32, stm32]
+          example: "arduino"
+
+    firmware:
+      description: Сгенерированная прошивка
+      type: object
+      required:
+        - id
+        - prototype_id
+      properties:
+        id:
+          description: Уникальный идентификатор прошивки
+          type: string
+          example: "fw-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        download_url:
+          description: Ссылка для скачивания
+          type: string
+          example: "/firmware/fw-001"
+        size_bytes:
+          description: Размер в байтах
+          type: integer
+          example: 24576
+        generated_at:
+          type: string
+          format: date-time
+
+    simulation-request:
+      description: Запрос на симуляцию
+      type: object
+      required:
+        - prototype_id
+      properties:
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        duration_sec:
+          description: Длительность симуляции в секундах
+          type: integer
+          example: 60
+        environment:
+          description: Тип среды
+          type: string
+          enum: [flat, rough, obstacle]
+          example: "rough"
+
+    simulation-result:
+      description: Результат симуляции
+      type: object
+      required:
+        - id
+        - prototype_id
+      properties:
+        id:
+          description: Уникальный идентификатор симуляции
+          type: string
+          example: "sim-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        trajectory:
+          description: Траектория движения
+          type: array
+          items:
+            type: object
+            properties:
+              time_sec:
+                type: number
+              x:
+                type: number
+              y:
+                type: number
+              theta:
+                type: number
+        energy_consumption_j:
+          description: Энергопотребление в джоулях
+          type: number
+          example: 450
+        avg_speed_m_per_s:
+          description: Средняя скорость
+          type: number
+          example: 0.11
+        obstacles_avoided:
+          description: Количество успешно обойдённых препятствий
+          type: integer
+          example: 12
+        completed:
+          description: Завершена ли симуляция успешно
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+
+    # ========== MANUFACTURING CONTEXT ==========
+    manufacturing-order:
+      description: Производственный заказ
+      type: object
+      required:
+        - id
+        - prototype_id
+        - quantity
+      properties:
+        id:
+          description: Уникальный номер заказа
+          type: string
+          example: "order-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        quantity:
+          description: Количество роботов в заказе
+          type: integer
+          example: 20
+        status:
+          description: |
+            Статус заказа:
+            0 - в ожидании
+            1 - в производстве
+            2 - выполнен
+            3 - отменён
+          type: integer
+          enum: [0, 1, 2, 3]
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    component:
+      description: Компонент робота
+      type: object
+      required:
+        - serial_number
+        - prototype_id
+      properties:
+        serial_number:
+          description: Серийный номер компонента
+          type: string
+          example: "comp-001-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        order_id:
+          description: ID заказа, в котором создан компонент
+          type: string
+          example: "order-001"
+        component_type:
+          description: Тип компонента
+          type: string
+          enum: [processor, servo, battery, chassis, sensor]
+          example: "processor"
+        status:
+          description: |
+            Статус компонента:
+            0 - в ожидании
+            1 - в производстве
+            2 - готов
+            3 - брак
+          type: integer
+          enum: [0, 1, 2, 3]
+          example: 2
+        manufactured_at:
+          type: string
+          format: date-time
+
+    # ========== ASSEMBLY CONTEXT ==========
+    assembled-robot:
+      description: Готовый робот
+      type: object
+      required:
+        - id
+        - prototype_id
+        - firmware_id
+      properties:
+        id:
+          description: Уникальный идентификатор готового робота
+          type: string
+          example: "robot-001"
+        prototype_id:
+          description: ID прототипа
+          type: string
+          example: "proto-001"
+        firmware_id:
+          description: ID установленной прошивки
+          type: string
+          example: "fw-001"
+        robot_name:
+          description: Индивидуальное имя робота
+          type: string
+          example: "Beetle-001"
+        assembled_at:
+          type: string
+          format: date-time
+        status:
+          description: Статус сборки
+          type: string
+          enum: [completed, pending, failed]
+          example: "completed"
